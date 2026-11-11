@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from machine_pipeline.bronze import transform_bronze
 from machine_pipeline.config import PATHS
+from machine_pipeline.gold import transform_gold
 from machine_pipeline.silver import transform_silver
 from machine_pipeline.spark import get_spark
 from machine_pipeline.storage import read_table, write_table
@@ -23,6 +24,11 @@ def main() -> None:
     print(
         f"quarantine: {read_table(spark, PATHS.quarantine).count():>9,} rows -> {PATHS.quarantine}"
     )
+
+    by_shift, by_day = transform_gold(read_table(spark, PATHS.silver))
+    write_table(by_shift, PATHS.gold / "machine_shift_kpis")
+    write_table(by_day, PATHS.gold / "machine_daily_kpis")
+    print(f"gold:       {by_shift.count():>9,} machine-shifts, {by_day.count():,} machine-days")
 
 
 if __name__ == "__main__":

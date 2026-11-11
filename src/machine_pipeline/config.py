@@ -50,16 +50,21 @@ WORKING_SHIFTS: dict[int, frozenset[str]] = {
 @dataclass(frozen=True)
 class Product:
     code: str
-    base_cycle_s: float
+    base_cycle_s: float  # typical cycle time, used by the generator
+    ideal_cycle_s: float  # rated (fastest planned) cycle time, used for OEE performance
 
 
 # Synthetic product catalogue; P-300 and P-400 are the slow, complex parts.
 PRODUCTS: tuple[Product, ...] = (
-    Product("P-100", 45.0),
-    Product("P-200", 60.0),
-    Product("P-300", 95.0),
-    Product("P-400", 130.0),
+    Product("P-100", base_cycle_s=45.0, ideal_cycle_s=38.0),
+    Product("P-200", base_cycle_s=60.0, ideal_cycle_s=51.0),
+    Product("P-300", base_cycle_s=95.0, ideal_cycle_s=80.0),
+    Product("P-400", base_cycle_s=130.0, ideal_cycle_s=110.0),
 )
+
+# A gap between two parts longer than this counts as downtime (availability
+# loss). Shorter gaps are minor stops and show up as performance loss.
+DOWNTIME_THRESHOLD_S = 300
 
 
 @dataclass(frozen=True)

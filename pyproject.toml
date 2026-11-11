@@ -32,3 +32,4 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "N", "SIM"]
+ignore = ["N812"]  # `from pyspark.sql import functions as F` is the PySpark convention

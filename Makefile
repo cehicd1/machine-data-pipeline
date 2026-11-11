@@ -19,8 +19,8 @@ test:   ## Run test suite
 	$(BIN)/pytest
 
 lint:   ## Lint and check formatting
-	$(BIN)/ruff check src tests
-	$(BIN)/ruff format --check src tests
+	$(BIN)/ruff check src tests databricks
+	$(BIN)/ruff format --check src tests databricks
 
 clean:  ## Remove generated data and caches
 	rm -rf data/raw data/bronze data/silver data/gold data/quarantine

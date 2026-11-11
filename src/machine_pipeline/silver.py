@@ -40,7 +40,8 @@ def cast_types(df: DataFrame) -> DataFrame:
     return df.withColumns(
         {
             "produced_at_typed": F.try_to_timestamp("produced_at", F.lit(RAW_TIMESTAMP_FORMAT)),
-            "cycle_time_s_typed": F.col("cycle_time_s").try_cast("double"),
+            # SQL try_cast also works on Spark Connect clients older than 4.0.
+            "cycle_time_s_typed": F.expr("try_cast(cycle_time_s AS DOUBLE)"),
             "is_scrap_typed": F.when(scrap == "true", True).when(scrap == "false", False),
         }
     )

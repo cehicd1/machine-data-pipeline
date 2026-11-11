@@ -209,6 +209,8 @@ def test_oee_math_on_hand_made_shift(spark: SparkSession) -> None:
     assert row.run_time_min == 405
     assert row.parts_produced == 243
     assert row.scrap_count == 9
+    assert row.good_count == 234
+    assert row.ideal_time_min == 324
     assert row.median_cycle_time_s == 100.0
     assert row.availability == pytest.approx(0.9, abs=1e-4)
     assert row.performance == pytest.approx(0.8, abs=1e-4)
@@ -237,6 +239,11 @@ def test_day_oee_is_computed_from_sums_not_averaged(spark: SparkSession) -> None
     assert day.oee == pytest.approx(396 * 288 / (540 * 297), abs=1e-4)  # 0.7111
     mean_of_shift_oee = (shifts[("early",)].oee + shifts[("late",)].oee) / 2  # 0.5333
     assert abs(day.oee - mean_of_shift_oee) > 0.1
+    # The additive shift columns let consumers roll up to the same day OEE.
+    rows = list(shifts.values())
+    planned, ideal = sum(r.planned_min for r in rows), sum(r.ideal_time_min for r in rows)
+    good, total = sum(r.good_count for r in rows), sum(r.parts_produced for r in rows)
+    assert ideal / planned * good / total == pytest.approx(day.oee, abs=1e-4)
 
 
 def test_parts_in_unscheduled_shift_have_no_time_based_kpis(spark: SparkSession) -> None:

@@ -200,6 +200,8 @@ def compute_kpis(
 
     Scheduled shifts without parts stay in the result (availability 0).
     Parts in unscheduled shifts are kept, but their time-based KPIs are null.
+    The additive columns (planned, run and ideal time, good and total parts)
+    are part of the output so higher levels can recompute OEE from sums.
     """
     planned = segments.groupBy(*keys).agg(
         (F.sum(F.col("seg_end_s") - F.col("seg_start_s")) / 60).alias("planned_min")
@@ -232,6 +234,8 @@ def compute_kpis(
                 "parts_produced": parts_n,
                 "scrap_count": scrap_n,
                 "downtime_min": downtime_min,
+                "good_count": parts_n - scrap_n,
+                "ideal_time_min": F.coalesce("ideal_time_s", F.lit(0.0)) / 60,
             }
         )
         .withColumn("run_time_min", run_min)
@@ -243,8 +247,9 @@ def compute_kpis(
             "planned_min",
             "parts_produced",
             "scrap_count",
+            "good_count",
             F.round("median_cycle_time_s", 1).alias("median_cycle_time_s"),
-            *[F.round(c, 2).alias(c) for c in ("downtime_min", "run_time_min")],
+            *[F.round(c, 2).alias(c) for c in ("downtime_min", "run_time_min", "ideal_time_min")],
             *[F.round(c, 4).alias(c) for c in ("availability", "performance", "quality", "oee")],
         )
         .orderBy(*keys)
@@ -253,8 +258,10 @@ def compute_kpis(
 
 def shift_production_sql(parts: DataFrame) -> DataFrame:
     """Spark SQL version of ``production_per_grain(parts, SHIFT_KEYS)`` (without ideal time)."""
+    # A temp view instead of DataFrame kwargs keeps this portable to Spark Connect.
+    parts.createOrReplaceTempView("shift_parts")
     query = files("machine_pipeline").joinpath("sql/shift_production.sql").read_text()
-    return parts.sparkSession.sql(query, parts=parts)
+    return parts.sparkSession.sql(query)
 
 
 def transform_gold(

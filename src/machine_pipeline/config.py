@@ -39,6 +39,14 @@ SHIFTS: tuple[Shift, ...] = (
 )
 
 
+# Production schedule: weekday (Mon=0) -> names of staffed shifts.
+# A night shift belongs to the day it starts (Fri 22:00 - Sat 06:00 is Friday).
+# Unscheduled shifts count as neither planned production time nor downtime.
+WORKING_SHIFTS: dict[int, frozenset[str]] = {
+    weekday: frozenset(s.name for s in SHIFTS) for weekday in range(5)
+}
+
+
 @dataclass(frozen=True)
 class Product:
     code: str

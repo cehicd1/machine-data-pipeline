@@ -1,8 +1,9 @@
 """Synthetic CNC production data generator.
 
-Simulates one row per produced part for a fleet of machines running 24/7 in
-three shifts. Realistic patterns: planned breaks, random stoppages, product
-changeovers, product-dependent cycle times and ~2% scrap. Data-quality issues
+Simulates one row per produced part for a fleet of machines running three
+shifts on scheduled days (see WORKING_SHIFTS). Realistic patterns: planned
+breaks, random stoppages, product changeovers, product-dependent cycle times
+and ~2% scrap. Data-quality issues
 (exact duplicates and malformed rows) are injected on purpose so the silver
 layer has something to clean.
 
@@ -20,6 +21,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from machine_pipeline.config import PATHS, RAW_COLUMNS, SHIFTS, GeneratorConfig, Product
+from machine_pipeline.shifts import is_scheduled, shift_at, shift_window
 
 Row = dict[str, str]
 TS_FORMAT = "%Y-%m-%d %H:%M:%S"
@@ -48,6 +50,13 @@ def simulate_machine(machine_id: str, cfg: GeneratorConfig, rng: random.Random) 
     seq = 0
 
     while t < end:
+        shift_date, shift = shift_at(t)
+        if not is_scheduled(shift_date, shift):
+            # Machine is idle until the next shift; restart timers from there.
+            t = shift_window(shift_date, shift)[1]
+            next_stop = max(next_stop, t + timedelta(seconds=rng.expovariate(stop_rate_per_s)))
+            run_end = max(run_end, t)
+            continue
         if (break_end := planned_break_end(t)) is not None:
             t = break_end
             continue
@@ -64,6 +73,8 @@ def simulate_machine(machine_id: str, cfg: GeneratorConfig, rng: random.Random) 
         noise = max(0.7, rng.gauss(1.0, cfg.cycle_noise_sd))
         cycle_s = round(product.base_cycle_s * speed * noise, 1)
         t += timedelta(seconds=cycle_s)
+        if not is_scheduled(*shift_at(t)):
+            continue  # cycle would finish after the last scheduled shift: no part
         seq += 1
         yield {
             "part_id": f"{machine_id}-{seq:07d}",

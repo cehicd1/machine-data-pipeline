@@ -82,6 +82,7 @@ class GeneratorConfig:
 
 
 PATHS = Paths()
+RAW_TIMESTAMP_FORMAT = "yyyy-MM-dd HH:mm:ss"  # Spark datetime pattern of produced_at
 RAW_COLUMNS: tuple[str, ...] = (
     "part_id",
     "machine_id",

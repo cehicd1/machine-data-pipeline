@@ -42,12 +42,5 @@ def with_ingestion_metadata(df: DataFrame) -> DataFrame:
     )
 
 
-def write_parquet(df: DataFrame, path: str | Path) -> None:
-    """Full refresh: overwrite keeps reruns idempotent."""
-    df.write.mode("overwrite").parquet(str(path))
-
-
-def run_bronze(spark: SparkSession, raw_path: str | Path, bronze_path: str | Path) -> DataFrame:
-    bronze = with_ingestion_metadata(read_raw(spark, raw_path))
-    write_parquet(bronze, bronze_path)
-    return spark.read.parquet(str(bronze_path))
+def transform_bronze(spark: SparkSession, raw_path: str | Path) -> DataFrame:
+    return with_ingestion_metadata(read_raw(spark, raw_path))

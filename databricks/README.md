@@ -5,6 +5,21 @@ as `make run`. Each layer is stored as a Unity Catalog Delta table instead of a
 Parquet folder. Only the storage calls differ; the transformations are imported
 from `src/machine_pipeline`.
 
+**Verified** on Databricks Free Edition with serverless compute (November 2026).
+Row counts match the local run exactly:
+
+| Table                     | Rows    |
+|---------------------------|--------:|
+| `bronze_production`       | 206,946 |
+| `silver_production`       | 205,892 |
+| `quarantine_production`   | 25 (all 6 quarantine reasons) |
+| `gold_machine_shift_kpis` | 660     |
+| `gold_machine_daily_kpis` | 220     |
+
+![Delta tables written on Databricks Free Edition](../docs/databricks_tables.png)
+
+![Fleet OEE per day in Spark SQL on Databricks](../docs/databricks_fleet_oee.png)
+
 ## Steps
 
 1. Sign up for [Databricks Free Edition](https://www.databricks.com/learn/free-edition).

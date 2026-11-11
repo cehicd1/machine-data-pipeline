@@ -73,8 +73,10 @@ def simulate_machine(machine_id: str, cfg: GeneratorConfig, rng: random.Random) 
         noise = max(0.7, rng.gauss(1.0, cfg.cycle_noise_sd))
         cycle_s = round(product.base_cycle_s * speed * noise, 1)
         t += timedelta(seconds=cycle_s)
+        if t >= end:
+            break  # cycle would finish after the simulated period
         if not is_scheduled(*shift_at(t)):
-            continue  # cycle would finish after the last scheduled shift: no part
+            continue  # cycle would finish in an unscheduled shift: no part
         seq += 1
         yield {
             "part_id": f"{machine_id}-{seq:07d}",
@@ -122,7 +124,9 @@ def generate(cfg: GeneratorConfig) -> list[Row]:
     rng = random.Random(cfg.seed)
     rows: list[Row] = []
     for i in range(1, cfg.n_machines + 1):
-        rows.extend(simulate_machine(f"M{i:02d}", cfg, rng))
+        machine_id = f"M{i:02d}"
+        # One RNG per machine: changing one machine's simulation never shifts the others.
+        rows.extend(simulate_machine(machine_id, cfg, random.Random(f"{cfg.seed}-{machine_id}")))
     rows = inject_duplicates(rows, cfg.duplicate_rate, rng)
     rows = inject_malformed(rows, cfg.n_malformed, rng)
     # Sort by timestamp string; malformed timestamps land wherever they sort.
